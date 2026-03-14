@@ -1,80 +1,108 @@
-full_name = "Vice City Multiplayer Protocol"
+import asyncio
+import socket
+import struct
+from dataclasses import dataclass
 
-    _request_header = b"VCMP"
-    _response_header = b"MP04"
+
+@dataclass
+class Status:
+    version: str
+    passworded: bool
+    num_players: int
+    max_players: int
+    server_name: str
+    game_type: str
+    language: str
+
+
+@dataclass
+class Player:
+    name: str
+
+
+class BinaryReader:
+    def __init__(self, data: bytes):
+        self.data = data
+        self.pos = 0
+
+    def byte(self):
+        v = self.data[self.pos]
+        self.pos += 1
+        return v
+
+    def short(self):
+        v = struct.unpack_from("<H", self.data, self.pos)[0]
+        self.pos += 2
+        return v
+
+    def long(self):
+        v = struct.unpack_from("<I", self.data, self.pos)[0]
+        self.pos += 4
+        return v
+
+    def bytes(self, n):
+        v = self.data[self.pos:self.pos+n]
+        self.pos += n
+        return v
+
+
+class VCMPQuery:
+    REQUEST = b"VCMP"
+    RESPONSE = b"MP04"
+
+    def __init__(self, host: str, port: int, timeout: float = 3):
+        self.host = host
+        self.port = port
+        self.timeout = timeout
+
+    async def _query(self, opcode: bytes) -> bytes:
+        loop = asyncio.get_running_loop()
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.setblocking(False)
+
+        ip = list(map(int, socket.gethostbyname(self.host).split(".")))
+
+        packet = self.REQUEST + struct.pack("<BBBBH", *ip, self.port) + opcode
+
+        await loop.sock_sendto(sock, packet, (self.host, self.port))
+
+        data, _ = await asyncio.wait_for(
+            loop.sock_recvfrom(sock, 4096),
+            timeout=self.timeout
+        )
+
+        if not data.startswith(self.RESPONSE):
+            raise ValueError("Invalid VCMP response")
+
+        return data[len(self.RESPONSE) + 7:]
 
     async def get_status(self) -> Status:
-        """
-        Asynchronously retrieves the status of the game server.
+        data = await self._query(b"i")
+        br = BinaryReader(data)
 
-        :return: A Status object containing the status of the game server.
-        """
-        response = await self.__send_and_receive(b"i")
-
-        br = BinaryReader(response)
+        version = br.bytes(12).split(b"\x00", 1)[0].decode("ascii", "ignore")
+        passworded = bool(br.byte())
+        num_players = br.short()
+        max_players = br.short()
 
         return Status(
-            version=str(
-                br.read_bytes(12).strip(b"\x00"), encoding="utf-8", errors="ignore"
-            ),
-            password=br.read_byte(),
-            num_players=br.read_short(),
-            max_players=br.read_short(),
-            server_name=self.__read_string(br, 4),
-            game_type=self.__read_string(br, 4),
-            language=self.__read_string(br, 4),
+            version,
+            passworded,
+            num_players,
+            max_players,
+            self._string(br),
+            self._string(br),
+            self._string(br)
         )
 
     async def get_players(self) -> list[Player]:
-        """
-        Asynchronously retrieves the list of players on the game server.
+        data = await self._query(b"c")
+        br = BinaryReader(data)
 
-        :return: A list of Player objects representing the players on the game server.
-        """
-        """Server may not response when numplayers > 100"""
-        response = await self.__send_and_receive(b"c")
+        count = br.short()
+        return [Player(self._string(br)) for _ in range(count)]
 
-        br = BinaryReader(response)
-        numplayers = br.read_short()
-        players = [Player(self.__read_string(br)) for _ in range(numplayers)]
-
-        return players
-
-    async def __send_and_receive(self, data: bytes):
-        """
-        Asynchronously sends the given data to the game server and receives the response.
-
-        :param data: The data to send to the game server.
-        :return: The response from the game server.
-        """
-        # Format the address
-        host = await Socket.gethostbyname(self._host)
-        packet_header = (
-            struct.pack("BBBBH", *map(int, host.split(".") + [self._port])) + data
-        )
-        request = self._request_header + packet_header
-
-        # Validate the response
-        response = await UdpClient.communicate(self, request)
-        header = response[: len(self._response_header)]
-
-        if header != self._response_header:
-            raise InvalidPacketException(
-                f"Packet header mismatch. Received: {header}. Expected: {self._response_header}."
-            )
-
-        return response[len(self._response_header) + len(packet_header) :]
-
-    def __read_string(self, br: BinaryReader, read_offset=1):
-        """
-        Reads a string from the given BinaryReader object.
-
-        :param br: The BinaryReader object to read the string from.
-        :param read_offset: The offset to start reading from.
-        :return: The string read from the BinaryReader object.
-        """
-        length = br.read_byte() if read_offset == 1 else br.read_long()
-        return str(br.read_bytes(length), encoding="utf-8", errors="ignore")
-
-
-if __name__ == "__main__":
+    def _string(self, br: BinaryReader) -> str:
+        length = br.byte()
+        return br.bytes(length).decode("utf-8", "ignore")
