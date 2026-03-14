@@ -38,10 +38,7 @@ Clone the repository:
 git clone https://github.com/H-a-S-a-N-990/vcmp-query-machine.git
 cd vcmp-query-machine
 ```
-Or install locally:
-```
-pip install vcmp-query.py
-```
+
 # Example Usage 
 
 Get Server status ( like vc-mp browser or game-state.com )
