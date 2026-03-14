@@ -76,18 +76,28 @@ asyncio.run(main())
 
 - example output
 ```
-===== SERVER STATUS =====
-Name: My VCMP Server
-Version: 04rel006
-Gamemode: Freeroam
-Language: English
-Players: 3 / 100
+=== SERVER STATUS ===
+Name: Grand Theft Auto Asian Clash
+Version: 0.4.7.1
+Gamemode: AC's 2.8.9 [Java]
+Map: Vice City
+Players: 13 / 100
 Passworded: False
 
-===== PLAYER LIST =====
-- Player1
-- Player2
-- Player3
+=== PLAYER LIST ===
+- Storm
+- Riggs
+- [SK]Jake*
+- FxJ9Uz.
+- [VGt]plAyauNKN0wn
+- [FV]RidwanRz
+- [RT]Domek
+- Namblasho
+- AA_7
+- ProKingKiller
+- AA_6
+- Nobita
+- jah***
 ```
 
 # Server Object 
@@ -100,7 +110,7 @@ Passworded: False
 | max_players  | int     | Maximum number of players  |
 | server_name  | str     | Server name                |
 | game_type    | str     | Gamemode                   |
-| language     | str     | Server language            |
+| map_name     | str     | Server map name            |
 
 # Player Object 
 | Field | Type | Description       |
