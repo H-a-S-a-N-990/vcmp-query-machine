@@ -47,39 +47,31 @@ Get Server status ( like vc-mp browser or game-state.com )
 import asyncio
 from vcmp-query import VCMPQuery
 
-
 async def main():
-    # Create query client
-    server = VCMPQuery("severip", port)
+    server = VcmpQuery("127.0.0.1", 8192)
 
     try:
-        # Get server status
         status = await server.get_status()
-
-        print("===== SERVER STATUS =====")
+        print("=== SERVER STATUS ===")
         print("Name:", status.server_name)
         print("Version:", status.version)
-        print("Gamemode:", status.game_type)
-        print("Language:", status.language)
+        print("Gamemode:", status.game_mode)
+        print("Map:", status.map_name)
         print("Players:", status.num_players, "/", status.max_players)
         print("Passworded:", status.passworded)
 
-        # Get player list
         players = await server.get_players()
-
-        print("\n===== PLAYER LIST =====")
+        print("\n=== PLAYER LIST ===")
         if not players:
             print("No players online.")
         else:
-            for player in players:
-                print("-", player.name)
+            for p in players:
+                print("-", p.name)
 
     except Exception as e:
         print("Error:", e)
 
-
-if __name__ == "__main__":
-    asyncio.run(main())
+asyncio.run(main())
 ```
 
 - example output
