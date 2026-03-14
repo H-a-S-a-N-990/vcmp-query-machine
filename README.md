@@ -83,7 +83,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-    ```
+```
 
 - example output
 ```
@@ -100,6 +100,7 @@ Passworded: False
 - Player2
 - Player3
 ```
+
 # Server Object 
 
 | Field        | Type    | Description                |
